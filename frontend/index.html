@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>PS-7.2 Governed Audit Log</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0b0e1a;--sur:#111827;--sur2:#1c2333;--bdr:#232d42;
+  --acc:#6366f1;--acc2:#818cf8;--grn:#22c55e;--ylw:#f59e0b;
+  --red:#ef4444;--blu:#38bdf8;--txt:#e2e8f0;--mut:#64748b;
+  --rad:12px;--ff:Inter,system-ui,sans-serif;
+}
+html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--ff);font-size:14px;line-height:1.5}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:3px}
+.lay{display:flex;height:100vh;overflow:hidden}
+.sb{width:240px;min-width:240px;background:var(--sur);border-right:1px solid var(--bdr);display:flex;flex-direction:column}
+.logo{padding:22px 18px 14px;border-bottom:1px solid var(--bdr)}
+.logo-ic{width:36px;height:36px;background:linear-gradient(135deg,var(--acc),#a78bfa);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:10px}
+.logo h1{font-size:14px;font-weight:700;color:var(--txt)}
+.logo p{font-size:11px;color:var(--mut);margin-top:2px}
+.nav{flex:1;padding:14px 0;overflow-y:auto}
+.ns{padding:0 14px 4px;font-size:10px;font-weight:700;color:var(--mut);letter-spacing:.08em;text-transform:uppercase;margin-top:10px}
+.ni{display:flex;align-items:center;gap:9px;margin:1px 8px;padding:8px 10px;cursor:pointer;color:var(--mut);border-radius:8px;transition:all .15s;font-size:13px;font-weight:500}
+.ni:hover{background:var(--sur2);color:var(--txt)}
+.ni.on{background:rgba(99,102,241,.15);color:var(--acc2);box-shadow:inset 0 0 0 1px rgba(99,102,241,.2)}
+.ni .ic{font-size:14px;width:20px;text-align:center}
+.sf{padding:12px;border-top:1px solid var(--bdr)}
+.ib{background:var(--sur2);border:1px solid var(--bdr);border-radius:10px;padding:12px}
+.ib .lb{font-size:10px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:5px}
+.ib input,.ib select{width:100%;background:var(--bg);color:var(--txt);border:1px solid var(--bdr);border-radius:7px;padding:7px 10px;font-size:13px;font-family:var(--ff);margin-bottom:8px;transition:border-color .15s}
+.ib input:last-child,.ib select:last-child{margin-bottom:0}
+.ib input:focus,.ib select:focus{outline:none;border-color:var(--acc)}
+.mn{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.tb{height:54px;background:var(--sur);border-bottom:1px solid var(--bdr);display:flex;align-items:center;padding:0 26px;gap:12px;flex-shrink:0}
+.tb h2{font-size:16px;font-weight:700;flex:1;letter-spacing:-.01em}
+.api-s{display:flex;align-items:center;gap:7px;background:var(--sur2);border:1px solid var(--bdr);border-radius:20px;padding:5px 12px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--grn);box-shadow:0 0 6px var(--grn)}
+.dot.off{background:var(--red);box-shadow:0 0 6px var(--red)}
+.api-t{font-size:12px;color:var(--mut)}
+.ct{flex:1;overflow-y:auto;padding:26px;display:flex;flex-direction:column;gap:20px}
+.sec{display:none}.sec.on{display:flex;flex-direction:column;gap:20px}
+.ph{display:flex;align-items:center;gap:12px;margin-bottom:4px}
+.ph-ic{width:38px;height:38px;border-radius:9px;background:var(--sur);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;font-size:18px}
+.ph h3{font-size:17px;font-weight:700;letter-spacing:-.01em}
+.ph p{font-size:12px;color:var(--mut)}
+.cd{background:var(--sur);border:1px solid var(--bdr);border-radius:var(--rad);padding:20px}
+.ch{font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.07em;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.ch span{flex:1}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.st{background:var(--sur2);border:1px solid var(--bdr);border-radius:var(--rad);padding:18px 20px;position:relative;overflow:hidden}
+.st::before{content:"";position:absolute;top:0;left:0;right:0;height:2px}
+.st.cb::before{background:var(--blu)}.st.cg::before{background:var(--grn)}.st.cr::before{background:var(--red)}.st.cy::before{background:var(--ylw)}
+.sv{font-size:30px;font-weight:700;line-height:1;letter-spacing:-.02em}
+.st.cb .sv{color:var(--blu)}.st.cg .sv{color:var(--grn)}.st.cr .sv{color:var(--red)}.st.cy .sv{color:var(--ylw)}
+.sl{font-size:10px;color:var(--mut);margin-top:5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+.fg label{font-size:11px;color:var(--mut);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.fg input,.fg textarea,.fg select{background:var(--bg);color:var(--txt);border:1px solid var(--bdr);border-radius:8px;padding:8px 11px;font-size:13px;font-family:var(--ff);transition:border-color .15s,box-shadow .15s}
+.fg input:focus,.fg textarea:focus,.fg select:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px rgba(99,102,241,.1)}
+.fg textarea{resize:vertical;min-height:70px}
+.row{display:flex;gap:10px;align-items:flex-end}.row .fg{flex:1;margin-bottom:0}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;border:none;font-weight:600;font-size:13px;font-family:var(--ff);cursor:pointer;transition:all .15s}
+.btn:active{transform:scale(.97)}
+.btn-p{background:linear-gradient(135deg,var(--acc),#7c3aed);color:#fff;box-shadow:0 2px 10px rgba(99,102,241,.3)}
+.btn-p:hover{opacity:.9;box-shadow:0 4px 18px rgba(99,102,241,.45)}
+.btn-o{background:transparent;color:var(--acc2);border:1px solid var(--bdr)}
+.btn-o:hover{background:var(--sur2)}
+.btn-d{background:linear-gradient(135deg,var(--red),#b91c1c);color:#fff;box-shadow:0 2px 8px rgba(239,68,68,.25)}
+.btn-d:hover{opacity:.9}
+.btn-sm{padding:5px 11px;font-size:12px}
+.tw{overflow-x:auto;border-radius:var(--rad);border:1px solid var(--bdr)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead tr{background:var(--sur2)}
+th{padding:9px 13px;text-align:left;font-size:10px;color:var(--mut);font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--bdr);white-space:nowrap}
+td{padding:9px 13px;border-bottom:1px solid var(--bdr);vertical-align:middle;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.02)}
+.b{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
+.bg{background:rgba(34,197,94,.1);color:var(--grn);border:1px solid rgba(34,197,94,.2)}
+.br{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+.by{background:rgba(245,158,11,.1);color:var(--ylw);border:1px solid rgba(245,158,11,.2)}
+.bb{background:rgba(56,189,248,.1);color:var(--blu);border:1px solid rgba(56,189,248,.2)}
+.bp{background:rgba(99,102,241,.1);color:var(--acc2);border:1px solid rgba(99,102,241,.2)}
+.bz{background:rgba(100,116,139,.1);color:var(--mut);border:1px solid rgba(100,116,139,.15)}
+.jb{background:var(--bg);border:1px solid var(--bdr);border-radius:8px;padding:14px;font-family:Consolas,monospace;font-size:12px;color:#7dd3fc;white-space:pre-wrap;overflow-x:auto;max-height:360px;overflow-y:auto;line-height:1.6}
+.tw2{position:fixed;top:18px;right:18px;display:flex;flex-direction:column;gap:8px;z-index:9999;pointer-events:none}
+.toast{padding:11px 16px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:0 8px 28px #0009;animation:tIn .2s ease;display:flex;align-items:center;gap:8px;max-width:320px}
+.tok{background:#052e16;color:#86efac;border-left:3px solid var(--grn)}
+.ter{background:#450a0a;color:#fca5a5;border-left:3px solid var(--red)}
+.tin{background:#0c1a2e;color:#93c5fd;border-left:3px solid var(--blu)}
+@keyframes tIn{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:translateX(0)}}
+.chain{display:flex;flex-direction:column;gap:4px}
+.cl{background:var(--sur2);border:1px solid var(--bdr);border-radius:8px;padding:10px 13px;display:flex;align-items:center;gap:10px}
+.cl.cur{border-color:var(--acc);background:rgba(99,102,241,.05)}
+.c-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;min-width:34px}
+.c-lbl.prev{color:var(--mut)}.c-lbl.now{color:var(--acc2)}
+.c-hash{font-family:monospace;font-size:11px;color:var(--txt);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.c-arr{text-align:center;color:var(--bdr);font-size:15px;padding:2px 0}
+.rb{border-radius:9px;padding:12px 16px;font-size:13px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.rbo{background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.22);color:var(--grn)}
+.rbe{background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.22);color:var(--red)}
+.empty{text-align:center;color:var(--mut);padding:40px 20px;font-size:13px}
+.ei{font-size:28px;margin-bottom:8px}
+.ts{font-size:11px;color:var(--mut)}
+.mono{font-family:monospace;font-size:11px;background:var(--sur2);border:1px solid var(--bdr);border-radius:4px;padding:1px 6px;color:var(--mut)}
+.ri{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--bdr)}
+.ri:last-child{border-bottom:none}
+.mt8{margin-top:8px}.mt16{margin-top:16px}
+</style>
+</head>
+<body>
+<div class="tw2" id="tw"></div>
+<div class="lay">
+<aside class="sb">
+<div class="logo"><div class="logo-ic">&#x1F512;</div><h1>Governed Audit Log</h1><p>PS-7.2 &middot; Compliance Platform</p></div>
+<nav class="nav">
+<div class="ns">Overview</div>
+<div class="ni on" onclick="go('db')"><span class="ic">&#x1F4CA;</span>Dashboard</div>
+<div class="ns">Data</div>
+<div class="ni" onclick="go('ig')"><span class="ic">&#x1F4E5;</span>Ingest Log</div>
+<div class="ni" onclick="go('rc')"><span class="ic">&#x1F4C4;</span>Records</div>
+<div class="ns">Security</div>
+<div class="ni" onclick="go('vr')"><span class="ic">&#x1F6E1;&#xFE0F;</span>Tamper Check</div>
+<div class="ni" onclick="go('pi')"><span class="ic">&#x1F513;</span>PII Reveal</div>
+<div class="ns">Compliance</div>
+<div class="ni" onclick="go('al')"><span class="ic">&#x1F575;&#xFE0F;</span>Access Audit</div>
+<div class="ni" onclick="go('rt')"><span class="ic">&#x23F3;</span>Retention</div>
+<div class="ni" onclick="go('ds')"><span class="ic">&#x1F464;</span>DSAR</div>
+</nav>
+<div class="sf"><div class="ib">
+<span class="lb">Acting as</span><input id="uid" value="alice" placeholder="User ID"/>
+<span class="lb" style="margin-top:4px">Role</span>
+<select id="rol"><option value="admin">&#x1F511; admin</option><option value="compliance">&#x1F4CB; compliance</option><option value="developer">&#x1F4BB; developer</option><option value="viewer">&#x1F441; viewer</option></select>
+</div></div>
+</aside>
+<div class="mn">
+<div class="tb"><h2 id="pt">Dashboard</h2>
+<div class="api-s"><span class="dot" id="sd"></span><span class="api-t" id="st2">Connecting&hellip;</span></div>
+</div>
+<div class="ct">
+<div class="sec on" id="db">
+<div class="ph"><div class="ph-ic">&#x1F4CA;</div><div><h3>Dashboard</h3><p>System overview &amp; quick actions</p></div></div>
+<div class="g4"><div class="st cb"><div class="sv" id="s1">&#x2014;</div><div class="sl">Redacted Records</div></div>
+<div class="st cg"><div class="sv" id="s2">&#x2014;</div><div class="sl">Audit Events</div></div>
+<div class="st cr"><div class="sv" id="s3">&#x2014;</div><div class="sl">Expired</div></div>
+<div class="st cy"><div class="sv" id="s4">&#x2014;</div><div class="sl">Legal Hold</div></div></div>
+<div class="g2">
+<div class="cd"><div class="ch"><span>&#x26A1; Quick Ingest</span></div>
+<div class="fg"><label>Prompt (may contain PII)</label><textarea id="qp" placeholder="e.g. My email is alice@example.com, SSN 123-45-6789"></textarea></div>
+<div class="row"><div class="fg"><label>Agent ID</label><select id="qa"><option>agent-support</option><option>agent-legal</option><option>agent-test</option></select></div>
+<div class="fg"><label>User ID</label><input id="qu" value="user-demo"/></div></div>
+<button class="btn btn-p" onclick="qIngest()">&#x1F4E5; Ingest Record</button>
+<div id="qr" class="jb mt8" style="display:none"></div></div>
+<div class="cd"><div class="ch"><span>&#x1F4CB; Recent Records</span><button class="btn btn-o btn-sm" onclick="loadRet()">&#x21BB; Refresh</button></div>
+<div id="rr"><div class="empty"><div class="ei">&#x1F4ED;</div>No records yet</div></div></div>
+</div></div>
+<div class="sec" id="ig">
+<div class="ph"><div class="ph-ic">&#x1F4E5;</div><div><h3>Ingest Log Record</h3><p>PII is auto-redacted on ingestion</p></div></div>
+<div class="g2">
+<div class="cd"><div class="ch"><span>New Record</span></div>
+<div class="fg"><label>Prompt (may contain PII)</label><textarea id="ip" rows="3" placeholder="e.g. My name is John Doe, email john@example.com, SSN 123-45-6789"></textarea></div>
+<div class="fg"><label>Response</label><textarea id="ir" rows="2" placeholder="Model response text&hellip;"></textarea></div>
+<div class="row"><div class="fg"><label>Agent ID</label><select id="ia"><option>agent-support</option><option>agent-legal</option><option>agent-financial</option><option>agent-medical</option><option>agent-hr</option><option>agent-compliance</option><option>agent-internal</option><option>agent-test</option></select></div>
+<div class="fg"><label>User ID</label><input id="iu" value="user-demo"/></div></div>
+<button class="btn btn-p" onclick="doIngest()">&#x1F4E5; Submit Record</button></div>
+<div class="cd"><div class="ch"><span>&#x2705; Result</span></div><div id="ingr" class="jb" style="min-height:180px">Awaiting submission&hellip;</div></div>
+</div></div>
+<div class="sec" id="rc">
+<div class="ph"><div class="ph-ic">&#x1F4C4;</div><div><h3>Records</h3><p>Browse and inspect redacted log records</p></div></div>
+<div class="cd"><div class="ch"><span>&#x1F50E; Fetch by ID</span></div>
+<div class="row"><div class="fg"><label>Record ID</label><input id="ri" placeholder="Paste a record UUID&hellip;"/></div>
+<button class="btn btn-p" style="margin-bottom:14px" onclick="fetchRec()">Fetch</button></div>
+<div id="rrr" class="jb" style="display:none"></div></div>
+<div class="cd"><div class="ch"><span>&#x1F4C4; All Records</span><button class="btn btn-o btn-sm" onclick="loadAll()">&#x21BB; Refresh</button></div>
+<div class="tw" id="rt2"><div class="empty"><div class="ei">&#x1F4C2;</div>Click Refresh to load</div></div></div>
+</div>
+<div class="sec" id="vr">
+<div class="ph"><div class="ph-ic">&#x1F6E1;&#xFE0F;</div><div><h3>Tamper Detection</h3><p>Verify record integrity via HMAC-SHA256 hash chain</p></div></div>
+<div class="cd"><div class="ch"><span>Enter Record ID</span></div>
+<div class="row"><div class="fg"><label>Record ID</label><input id="vi" placeholder="Paste a record UUID&hellip;"/></div>
+<button class="btn btn-p" style="margin-bottom:14px" onclick="doVerify()">&#x1F6E1;&#xFE0F; Verify Integrity</button></div>
+<div id="vres" style="display:none">
+<div id="vb" class="rb"></div>
+<div class="g2" style="margin-bottom:14px"><div class="fg"><label>Stored Hash</label><input id="vsh" readonly style="font-family:monospace;font-size:11px"/></div>
+<div class="fg"><label>Recomputed Hash</label><input id="veh" readonly style="font-family:monospace;font-size:11px"/></div></div>
+<div class="ch" style="margin-bottom:10px"><span>&#x1F517; Hash Chain</span></div><div id="vc" class="chain"></div>
+<div class="ch" style="margin:16px 0 10px"><span>&#x1F575;&#xFE0F; Access Events</span></div><div class="tw" id="va"></div>
+</div></div></div>
+<div class="sec" id="al">
+<div class="ph"><div class="ph-ic">&#x1F575;&#xFE0F;</div><div><h3>Access Audit Log</h3><p>Every read of a log record is itself logged</p></div></div>
+<div class="cd"><div class="ch"><span>Filters</span></div>
+<div class="row">
+<div class="fg"><label>User ID</label><input id="af" placeholder="leave blank for all"/></div>
+<div class="fg"><label>Record ID</label><input id="ar" placeholder="leave blank for all"/></div>
+<div class="fg" style="max-width:100px"><label>Limit</label><input id="al2" type="number" value="50"/></div>
+<button class="btn btn-p" style="margin-bottom:14px" onclick="loadAudit()">Load Events</button>
+</div></div>
+<div class="cd"><div class="ch"><span>Events</span></div>
+<div class="tw" id="at"><div class="empty"><div class="ei">&#x1F575;&#xFE0F;</div>Click Load Events above</div></div></div>
+</div>
+<div class="sec" id="rt">
+<div class="ph"><div class="ph-ic">&#x23F3;</div><div><h3>Retention Policy</h3><p>Retention tiers assigned by agent classification</p></div></div>
+<div class="g3"><div class="st cb"><div class="sv" id="r1">&#x2014;</div><div class="sl">Total Records</div></div>
+<div class="st cr"><div class="sv" id="r2">&#x2014;</div><div class="sl">Expired</div></div>
+<div class="st cy"><div class="sv" id="r3">&#x2014;</div><div class="sl">Expiring &lt;7 days</div></div></div>
+<div class="cd"><div class="ch"><span>Retention Report</span><button class="btn btn-o btn-sm" onclick="loadRet()">&#x21BB; Refresh</button></div>
+<div class="tw" id="rtt"><div class="empty"><div class="ei">&#x23F3;</div>Click Refresh</div></div></div>
+<div class="cd"><div class="ch"><span>&#x1F512; Legal Hold</span></div>
+<div class="row"><div class="fg"><label>Record ID</label><input id="lri" placeholder="Record UUID"/></div>
+<div class="fg" style="max-width:160px"><label>Action</label><select id="lac"><option value="true">Set Hold</option><option value="false">Release Hold</option></select></div>
+<button class="btn btn-p" style="margin-bottom:14px" onclick="setHold()">Apply</button></div>
+<div id="lr" class="jb" style="display:none;min-height:50px"></div>
+</div></div>
+<div class="sec" id="pi">
+<div class="ph"><div class="ph-ic">&#x1F513;</div><div><h3>PII Reveal</h3><p>Compliance &amp; admin only &mdash; all access is logged</p></div></div>
+<div class="g2">
+<div class="cd"><div class="ch"><span>Request Access</span></div>
+<div class="fg"><label>Record ID</label><input id="pri" placeholder="Record UUID"/></div>
+<div class="fg"><label>Justification <span class="ts">(min 10 chars)</span></label><textarea id="pj" rows="2" placeholder="Reason for accessing raw PII&hellip;"></textarea></div>
+<div class="fg"><label>Reason Code</label><select id="pc"><option>audit</option><option>legal</option><option>compliance</option><option>support</option><option>other</option></select></div>
+<button class="btn btn-d" onclick="revPII()">&#x1F513; Reveal PII</button></div>
+<div class="cd"><div class="ch"><span>Result</span></div><div id="pr" class="jb" style="min-height:200px">Awaiting request&hellip;</div></div>
+</div></div>
+<div class="sec" id="ds">
+<div class="ph"><div class="ph-ic">&#x1F464;</div><div><h3>Data Subject Access Request</h3><p>Retrieve &amp; mark for deletion all records referencing a user</p></div></div>
+<div class="cd"><div class="ch"><span>Submit DSAR</span></div>
+<p class="ts" style="margin-bottom:14px">Finds records by direct user_id match <em>and</em> PII token cross-reference. Returns a redacted summary and marks every matched record <code style="background:var(--sur2);padding:1px 5px;border-radius:4px;font-size:11px">deletion_requested=true</code>.</p>
+<div class="row"><div class="fg"><label>User ID</label><input id="di" placeholder="e.g. user-john"/></div>
+<button class="btn btn-d" style="margin-bottom:14px" onclick="doDSAR()">Submit DSAR</button></div>
+<div id="db2" style="display:none;margin-bottom:12px"></div>
+<div class="tw" id="dt" style="display:none"></div>
+</div></div>
+</div>
+</div>
+</div>
+
+<script>
+const A='';
+function auth(){const u=document.getElementById('uid').value.trim()||'anon';const r=document.getElementById('rol').value;return{'Authorization':'Bearer '+u+':'+r,'Content-Type':'application/json'};}
+function toast(m,t){const w=document.getElementById('tw');const d=document.createElement('div');d.className='toast '+(t==='ok'?'tok':t==='err'?'ter':'tin');const ic={ok:'✅',err:'❌',inf:'ℹ️'};d.innerHTML='<span>'+ic[t||'inf']+'</span><span>'+m+'</span>';w.appendChild(d);setTimeout(()=>d.remove(),3400);}
+const TITLES={db:'Dashboard',ig:'Ingest Log',rc:'Records',vr:'Tamper Check',pi:'PII Reveal',al:'Access Audit',rt:'Retention',ds:'DSAR'};
+function go(id){document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));document.getElementById(id).classList.add('on');document.querySelectorAll('.ni').forEach(n=>{if(n.getAttribute('onclick').includes("'"+id+"'"))n.classList.add('on');});document.getElementById('pt').textContent=TITLES[id]||id;if(id==='db'){chk();metrics();loadRet();}if(id==='rt')loadRet();if(id==='al')loadAudit();if(id==='rc')loadAll();}
+async function chk(){const dot=document.getElementById('sd'),t=document.getElementById('st2');try{const r=await fetch(A+'/health');if(r.ok){dot.className='dot';t.textContent='API online';}else{dot.className='dot off';t.textContent='API error';}}catch{dot.className='dot off';t.textContent='Offline';}}
+async function metrics(){try{const r=await fetch(A+'/metrics',{headers:auth()});if(r.ok){const d=await r.json();document.getElementById('s1').textContent=d.redacted_records??'—';document.getElementById('s2').textContent=d.audit_entries??'—';}}catch{}try{const r=await fetch(A+'/compliance/retention-report',{headers:auth()});if(r.ok){const d=await r.json();document.getElementById('s3').textContent=d.expired??'—';document.getElementById('s4').textContent=d.legal_hold??'—';}}catch{}}
+function sbg(s){const m={EXPIRED:'br',EXPIRING_SOON:'by',ACTIVE:'bg'};return'<span class="b '+(m[s]||'bz')+'">'+s+'</span>';}
+function retRow(rows){if(!rows.length)return'<div class="empty"><div class="ei">⏳</div>No records</div>';return'<table><thead><tr><th>Record ID</th><th>User</th><th>Agent</th><th>Category</th><th>Expiry</th><th>Days</th><th>Status</th><th>Hold</th><th>Actions</th></tr></thead><tbody>'+rows.map(r=>'<tr><td><span class="mono" style="cursor:pointer" onclick="jumpRec(\''+r.record_id+'\')">'+r.record_id.slice(0,10)+'…</span></td><td>'+esc(r.user_id||'—')+'</td><td>'+esc(r.agent_id||'—')+'</td><td><span class="b bp">'+esc(r.retention_category||'—')+'</span></td><td class="ts">'+(r.expiry_time?new Date(r.expiry_time).toLocaleDateString():'—')+'</td><td>'+r.days_left+'</td><td>'+sbg(r.status)+'</td><td>'+(r.legal_hold?'<span class="b by">🔒 Hold</span>':'<span class="b bz">—</span>')+'</td><td style="white-space:nowrap"><button class="btn btn-o btn-sm" onclick="jumpVer(\''+r.record_id+'\')">Verify</button> <button class="btn btn-o btn-sm" onclick="jumpPII(\''+r.record_id+'\')">PII</button></td></tr>').join('')+'</tbody></table>';}
+async function loadRet(){try{const r=await fetch(A+'/compliance/retention-report',{headers:auth()});const denied='<div class="empty"><div class="ei">🔒</div>Requires compliance or admin role</div>';if(!r.ok){['rr','rtt'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=denied;});['r1','r2','r3'].forEach(id=>document.getElementById(id).textContent='—');return;}const d=await r.json();document.getElementById('r1').textContent=d.total_records??'—';document.getElementById('r2').textContent=d.expired??'—';document.getElementById('r3').textContent=d.expiring_soon??'—';const recs=d.records||[];document.getElementById('rr').innerHTML=recs.length?recs.slice(0,6).map(r=>'<div class="ri"><span class="mono">'+r.record_id.slice(0,10)+'…</span><span class="ts" style="flex:1">'+esc(r.agent_id||'—')+'</span>'+sbg(r.status)+'<span class="ts">'+r.days_left+'d</span></div>').join(''):'<div class="empty"><div class="ei">📭</div>No records</div>';document.getElementById('rtt').innerHTML=retRow(recs);}catch(e){console.error(e);}}
+async function qIngest(){const body={prompt:document.getElementById('qp').value||'My email is alice@example.com',response:'Noted.',agent_id:document.getElementById('qa').value,timestamp:new Date().toISOString(),user_id:document.getElementById('qu').value};try{const r=await fetch(A+'/ingest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await r.json();const b=document.getElementById('qr');b.style.display='block';b.textContent=JSON.stringify(d,null,2);if(r.ok){toast('Ingested: '+d.record_id.slice(0,8)+'…','ok');metrics();}else toast('Error: '+d.detail,'err');}catch{toast('Network error','err');}}
+async function doIngest(){const body={prompt:document.getElementById('ip').value,response:document.getElementById('ir').value||'OK',agent_id:document.getElementById('ia').value,timestamp:new Date().toISOString(),user_id:document.getElementById('iu').value};if(!body.prompt){toast('Enter a prompt','err');return;}const el=document.getElementById('ingr');el.textContent='Ingesting…';try{const r=await fetch(A+'/ingest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await r.json();el.textContent=JSON.stringify(d,null,2);if(r.ok)toast('Ingested: '+d.record_id.slice(0,8)+'…','ok');else toast('Error: '+d.detail,'err');}catch{toast('Network error','err');}}
+async function fetchRec(){const id=document.getElementById('ri').value.trim();if(!id){toast('Enter a record ID','err');return;}const b=document.getElementById('rrr');b.style.display='block';b.textContent='Loading…';try{const r=await fetch(A+'/records/'+id,{headers:auth()});const d=await r.json();b.textContent=JSON.stringify(d,null,2);if(!r.ok)toast(d.detail||'Error','err');}catch{toast('Network error','err');}}
+async function loadAll(){try{const r=await fetch(A+'/compliance/retention-report',{headers:auth()});if(!r.ok){document.getElementById('rt2').innerHTML='<div class="empty"><div class="ei">🔒</div>Requires compliance or admin role</div>';return;}const d=await r.json();document.getElementById('rt2').innerHTML=retRow(d.records||[]);}catch{toast('Error','err');}}
+function jumpRec(id){document.getElementById('ri').value=id;go('rc');setTimeout(fetchRec,80);}
+function jumpVer(id){go('vr');document.getElementById('vi').value=id;setTimeout(doVerify,80);}
+function jumpPII(id){go('pi');document.getElementById('pri').value=id;}
+async function doVerify(){const id=document.getElementById('vi').value.trim();if(!id){toast('Enter a record ID','err');return;}try{const r=await fetch(A+'/verify/'+id,{headers:auth()});const d=await r.json();if(!r.ok){toast(d.detail||'Error','err');return;}document.getElementById('vres').style.display='block';const vb=document.getElementById('vb');if(d.tampered){vb.className='rb rbe';vb.innerHTML='⚠️ <strong>TAMPERED</strong> — stored hash does not match recomputed hash';}else{vb.className='rb rbo';vb.innerHTML='✅ <strong>INTACT</strong> — record hash verified successfully';}document.getElementById('vsh').value=d.stored_hash||'';document.getElementById('veh').value=d.expected_hash||'';document.getElementById('vc').innerHTML='<div class="cl"><span class="c-lbl prev">PREV</span><span class="c-hash">'+(d.previous_hash||'(genesis — first record in chain)')+'</span></div><div class="c-arr">↓</div><div class="cl cur"><span class="c-lbl now">THIS</span><span class="c-hash">'+(d.stored_hash||'')+'</span></div>';const ae=d.audit_entries||[];document.getElementById('va').innerHTML=ae.length?'<table><thead><tr><th>Time</th><th>User</th><th>Role</th><th>Action</th></tr></thead><tbody>'+ae.map(e=>'<tr><td class="ts">'+fd(e.created_at)+'</td><td>'+esc(e.user_id||'—')+'</td><td>'+esc(e.role||'—')+'</td><td><span class="b bb">'+esc(e.action||'—')+'</span></td></tr>').join('')+'</tbody></table>':'<div class="empty"><div class="ei">📭</div>No access events</div>';toast(d.tampered?'Tampering detected!':'Record intact',d.tampered?'err':'ok');}catch{toast('Network error','err');}}
+async function loadAudit(){const uid=document.getElementById('af').value.trim(),rid=document.getElementById('ar').value.trim(),lim=document.getElementById('al2').value||50;let url=A+'/audit/access-log?limit='+lim;if(uid)url+='&user_id='+encodeURIComponent(uid);if(rid)url+='&record_id='+encodeURIComponent(rid);try{const r=await fetch(url,{headers:auth()});const d=await r.json();const tbl=document.getElementById('at');if(!r.ok){tbl.innerHTML='<div class="empty"><div class="ei">🔒</div>'+(d.detail||'Access denied')+'</div>';return;}const es=d.entries||[];if(!es.length){tbl.innerHTML='<div class="empty"><div class="ei">🕵️</div>No events found</div>';return;}tbl.innerHTML='<table><thead><tr><th>Time</th><th>User</th><th>Role</th><th>Action</th><th>Record</th><th>Reason</th></tr></thead><tbody>'+es.map(e=>'<tr><td class="ts" style="white-space:nowrap">'+fd(e.created_at)+'</td><td>'+esc(e.user_id||'—')+'</td><td>'+esc(e.role||'—')+'</td><td><span class="b bb">'+esc(e.action||'—')+'</span></td><td><span class="mono">'+(e.record_id||'—').slice(0,10)+((e.record_id||'').length>10?'…':'')+'</span></td><td>'+esc(e.reason_code||'—')+'</td></tr>').join('')+'</tbody></table>';toast(es.length+' events','inf');}catch{toast('Network error','err');}}
+async function setHold(){const rid=document.getElementById('lri').value.trim(),hold=document.getElementById('lac').value==='true';if(!rid){toast('Enter a record ID','err');return;}try{const r=await fetch(A+'/compliance/legal-hold/'+rid+'?hold='+hold,{method:'POST',headers:auth()});const d=await r.json();const b=document.getElementById('lr');b.style.display='block';b.textContent=JSON.stringify(d,null,2);if(r.ok)toast(hold?'Legal hold set':'Hold released','ok');else toast(d.detail||'Error','err');}catch{toast('Network error','err');}}
+async function revPII(){const rid=document.getElementById('pri').value.trim(),just=document.getElementById('pj').value.trim(),rc=document.getElementById('pc').value;if(!rid){toast('Enter a record ID','err');return;}if(just.length<10){toast('Justification must be at least 10 characters','err');return;}try{const r=await fetch(A+'/pii/reveal/'+rid,{method:'POST',headers:auth(),body:JSON.stringify({justification:just,reason_code:rc})});const d=await r.json();document.getElementById('pr').textContent=JSON.stringify(d,null,2);if(r.ok)toast('PII revealed — access logged','ok');else toast(d.detail||'Access denied','err');}catch{toast('Network error','err');}}
+async function doDSAR(){const uid=document.getElementById('di').value.trim();if(!uid){toast('Enter a user ID','err');return;}try{const r=await fetch(A+'/dsar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:uid})});const d=await r.json();const bn=document.getElementById('db2');bn.style.display='block';if(r.ok){bn.innerHTML=d.records_found>0?'<div class="rb rbe">⚠️ Found <strong>'+d.records_found+'</strong> record(s) for <strong>'+esc(uid)+'</strong> — all marked for deletion</div>':'<div class="rb rbo">✅ No records found for <strong>'+esc(uid)+'</strong></div>';const rows=d.summary||[],tbl=document.getElementById('dt');if(rows.length){tbl.style.display='block';tbl.innerHTML='<table><thead><tr><th>Record ID</th><th>Agent</th><th>Retention</th><th>Expiry</th><th>Redacted Prompt</th><th>PII Types</th></tr></thead><tbody>'+rows.map(s=>'<tr><td><span class="mono">'+s.record_id.slice(0,10)+'…</span></td><td>'+esc(s.agent_id||'—')+'</td><td><span class="b bp">'+esc(s.retention_category||'—')+'</span></td><td class="ts">'+(s.expiry_time?new Date(s.expiry_time).toLocaleDateString():'—')+'</td><td title="'+esc(s.redacted_prompt)+'">'+esc(s.redacted_prompt||'').slice(0,55)+((s.redacted_prompt||'').length>55?'…':'')+'</td><td>'+(s.pii_token_types||[]).map(t=>'<span class="b bb">'+esc(t.entity_type)+'</span>').join(' ')+'</td></tr>').join('')+'</tbody></table>';}else tbl.style.display='none';toast(d.records_found>0?'DSAR: '+d.records_found+' record(s) marked for deletion':'DSAR: no records found',d.records_found>0?'inf':'ok');}else bn.innerHTML='<div class="rb rbe">❌ '+esc(d.detail||'Error')+'</div>';}catch{toast('Network error','err');}}
+function fd(s){if(!s)return'—';try{return new Date(s).toLocaleString();}catch{return s;}}
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+chk();metrics();loadRet();
+</script>
+
+</body>
+</html>
