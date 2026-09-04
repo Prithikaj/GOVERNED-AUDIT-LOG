@@ -1,4 +1,4 @@
-# PS-7.2 Governed Audit Log
+# Governed Audit Log
 
 Enterprise-grade audit log governance platform with **PII redaction**, **retention policies**, **access audit logging**, **tamper detection**, **RBAC**, and **DSAR handling**.
 
